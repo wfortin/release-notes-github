@@ -1,0 +1,24 @@
+{
+  "name": "@wfortin/github-releases",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo 'test'",
+    "postpublish": "PACKAGE_VERSION=$(cat package.json | grep \\\"version\\\" | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]') && git tag v$PACKAGE_VERSION && git push --tags --force"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wfortin/github-releases.git"
+  },
+  "author": "wfortin",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wfortin/github-releases/issues"
+  },
+  "homepage": "https://github.com/wfortin/github-releases#readme",
+  "publishConfig": {
+    "access": "restricted",
+    "registry": "https://npm.pkg.github.com"
+  }
+}

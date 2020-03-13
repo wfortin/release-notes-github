@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Check if version has been updated
+        id: check
+        uses: EndBug/version-check@v1
+        with:
+          diff-search: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get all tags
+        if: steps.check.outputs.changed == 'true'
+        run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+      - name: Release notes
+        if: steps.check.outputs.changed == 'true'
+        id: release_notes
+        run: |
+          body=$(git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"- %s %h ")
+          echo $body
+          body="${body//'%'/'%25'}"
+          body="${body//$'\n'/'%0A'}"
+          body="${body//$'\r'/'%0D'}" 
+          echo "::set-output name=body::$body" 
+          echo "::set-output name=version::$(node -p 'require("./package.json").version')"
+          npm config set '//npm.pkg.github.com/:_authToken' "${{ secrets.GITHUB_TOKEN }}"
+          npm publish
+
+      - name: New version detected, release package
+        if: steps.check.outputs.changed == 'true'
+        uses: actions/create-release@master
+        with:
+          tag_name: v${{ steps.release_notes.outputs.version }}
+          release_name: Release ${{ steps.release_notes.outputs.version }}
+          body: |
+            ${{ steps.release_notes.outputs.body }}
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: No new version detected, run tests
+        if: steps.check.outputs.changed != 'true'
+        run: |
+          echo "No version change"
+          yarn test
